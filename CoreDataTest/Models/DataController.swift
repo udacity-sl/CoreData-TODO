@@ -52,3 +52,17 @@ extension DataController {
 		}
 	}
 }
+
+extension Task {
+    public override func awakeFromInsert() {
+        super.awakeFromInsert()
+        createdAt = Date()
+    }
+}
+
+extension SubTask {
+    public override func awakeFromInsert() {
+        super.awakeFromInsert()
+        createdAt = Date()
+    }
+}

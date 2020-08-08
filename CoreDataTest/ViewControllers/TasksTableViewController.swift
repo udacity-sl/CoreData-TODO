@@ -11,7 +11,7 @@ import CoreData
 
 class TasksTableViewController: UITableViewController {
 
-	var fetchedResultsController:NSFetchedResultsController<Task>!
+	var fetchedResultsController: NSFetchedResultsController<Task>!
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -22,11 +22,21 @@ class TasksTableViewController: UITableViewController {
 	func fetch() {
 		let fetchRequest: NSFetchRequest<Task> = Task.fetchRequest()
 		// TODO: Sort the results
-
+        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: false)]
 		// TODO: create the fetched results controller
-
+        fetchedResultsController = NSFetchedResultsController(
+            fetchRequest: fetchRequest,
+            managedObjectContext: DataController.shared.viewContext,
+            sectionNameKeyPath: nil,
+            cacheName: nil
+        )
+        fetchedResultsController.delegate = self
 		// TODO: perform the fetch with fetchedResultsController
-
+        do {
+            try fetchedResultsController.performFetch()
+        } catch {
+            debugPrint(error)
+        }
 	}
 
 	@IBAction func addTask(_ sender: UIBarButtonItem) {
@@ -47,7 +57,6 @@ class TasksTableViewController: UITableViewController {
 	func createNewTask(with title: String) {
 		let task = Task(context: DataController.shared.viewContext)
 		task.title = title
-		task.createdAt = Date()
 		try? DataController.shared.viewContext.save()
 	}
 
@@ -79,6 +88,9 @@ class TasksTableViewController: UITableViewController {
 		switch editingStyle {
 		case .delete:
 			// TODO: get the task managed object from the fetchedResultsController and then remove it from the viewContext
+            let task = fetchedResultsController.object(at: indexPath)
+            DataController.shared.viewContext.delete(task)
+            try? DataController.shared.viewContext.save()
 			break
 		default:
 			break
@@ -87,18 +99,34 @@ class TasksTableViewController: UITableViewController {
 
 	override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
 		// TODO: get the managed object for the selected task and pass it to the subtasks controller
+        let subtasksVC = storyboard?.instantiateViewController(withIdentifier: "SubTasksTableViewController") as! SubTasksTableViewController
+        subtasksVC.task = fetchedResultsController.object(at: indexPath)
+        navigationController?.pushViewController(subtasksVC, animated: true)
 	}
 }
 
 
 extension TasksTableViewController: NSFetchedResultsControllerDelegate {
-	func controller(_ controller: NSFetchedResultsController<NSFetchRequestResult>, didChange anObject: Any, at indexPath: IndexPath?, for type: NSFetchedResultsChangeType, newIndexPath: IndexPath?) {
+
+    func controllerWillChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
+        tableView.beginUpdates()
+    }
+    
+	func controller(
+        _ controller: NSFetchedResultsController<NSFetchRequestResult>,
+        didChange anObject: Any,
+        at indexPath: IndexPath?,
+        for type: NSFetchedResultsChangeType,
+        newIndexPath: IndexPath?
+    ) {
 		switch type {
 		case .insert:
 			// TODO: insert the new item to the table view
+            tableView.insertRows(at: [newIndexPath!], with: .automatic)
 			break
 		case .delete:
 			// TODO: delete the item from the table view
+            tableView.deleteRows(at: [indexPath!], with: .automatic)
 			break
 		case .update:
 			tableView.reloadRows(at: [indexPath!], with: .fade)
@@ -106,6 +134,11 @@ extension TasksTableViewController: NSFetchedResultsControllerDelegate {
 			tableView.moveRow(at: indexPath!, to: newIndexPath!)
 		}
 	}
+
+    func controllerDidChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
+        // TODO: finish updating the table view
+        tableView.endUpdates()
+    }
 
 	func controller(_ controller: NSFetchedResultsController<NSFetchRequestResult>, didChange sectionInfo: NSFetchedResultsSectionInfo, atSectionIndex sectionIndex: Int, for type: NSFetchedResultsChangeType) {
 		let indexSet = IndexSet(integer: sectionIndex)
@@ -115,13 +148,5 @@ extension TasksTableViewController: NSFetchedResultsControllerDelegate {
 		case .update, .move:
 			fatalError("Invalid change type in controller(_:didChange:atSectionIndex:for:). Only .insert or .delete should be possible.")
 		}
-	}
-
-	func controllerWillChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
-		tableView.beginUpdates()
-	}
-
-	func controllerDidChangeContent(_ controller: NSFetchedResultsController<NSFetchRequestResult>) {
-		// TODO: finish updating the table view
 	}
 }

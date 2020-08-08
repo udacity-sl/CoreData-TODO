@@ -26,8 +26,13 @@ class SubTasksTableViewController: UITableViewController {
 		let sortDescriptor = NSSortDescriptor(key: "createdAt", ascending: true)
 		fetchRequest.sortDescriptors = [sortDescriptor]
 		// TODO: add a predicate to get the subtasks for the selected task only
-
-		fetchedResultsController = NSFetchedResultsController(fetchRequest: fetchRequest, managedObjectContext: DataController.shared.viewContext, sectionNameKeyPath: nil, cacheName: nil)
+        fetchRequest.predicate = NSPredicate(format: "task == %@", task)
+		fetchedResultsController = NSFetchedResultsController(
+            fetchRequest: fetchRequest,
+            managedObjectContext: DataController.shared.viewContext,
+            sectionNameKeyPath: nil,
+            cacheName: nil
+        )
 		fetchedResultsController.delegate = self
 		do {
 			try fetchedResultsController.performFetch()
@@ -52,6 +57,10 @@ class SubTasksTableViewController: UITableViewController {
 	}
 	func creatSubTask(with title: String) {
 		// TODO: create a new SubTask managed object using the viewContext
+        let subtask = SubTask(context: DataController.shared.viewContext)
+        subtask.title = title
+        subtask.task = task
+        try? DataController.shared.viewContext.save()
 	}
 
 	// MARK: - Table view data source
